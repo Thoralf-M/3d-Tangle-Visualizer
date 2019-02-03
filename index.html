@@ -1,0 +1,131 @@
+<!DOCTYPE html>
+  <head>
+    <title>zmqtangle</title>
+    <link href="https://fonts.googleapis.com/css?family=Nunito+Sans:300" rel="stylesheet">
+    <script src="/socket.io/socket.io.js"></script>
+    <script src="3d-force-graph.min.js"></script>
+    <script src="https://unpkg.com/d3-octree@0.1.4/dist/d3-octree.min.js"></script>
+    <script src="https://unpkg.com/d3-force-3d@2.0.1/dist/d3-force-3d.min.js"></script>
+    <script src="https://unpkg.com/dat.gui@0.7.5/build/dat.gui.js"></script>
+
+    <style>
+        body { margin: 0; }
+        html {
+        overflow: hidden;
+        }
+        html, body { width:100%; height:100%; }
+    </style>
+  </head>
+
+  <body style="font-family: 'Nunito Sans', sans-serif;" text='white'>
+    
+  <div id="3d-graph"></div>
+
+<script>
+
+/************
+****graph****
+*************/
+
+const initData = {
+    nodes: [],
+    links: []
+  };
+
+  const elem = document.getElementById("3d-graph");
+  // const controls = { 'DAG Orientation': 'td'};
+  // const gui = new dat.GUI();
+  //   gui.add(controls, 'DAG Orientation', ['td', 'bu', 'lr', 'rl', 'zout', 'zin', 'radialout', 'radialin', null])
+  //     .onChange(orientation => graph && graph.dagMode(orientation));
+  const Graph = ForceGraph3D()(elem)
+    .enableNodeDrag(true)
+    .onNodeHover(node => elem.style.cursor = node ? 'pointer' : null)
+    .graphData(initData)
+    // .dagMode('td')
+    .nodeRelSize(7)
+    .backgroundColor('#030c18')
+    .nodeColor('rgba(255,255,0.2,0.2)')
+    .nodeResolution(30)
+    .nodeAutoColorBy('module')
+    .linkColor(() => 'rgb(89, 161, 255, 0.7)')
+    .linkWidth(2)
+    .linkResolution(3)
+    .nodeLabel(node => `${node.id}`)
+    .onNodeClick(node => window.open(`https://thetangle.org/transaction/${node.id}`))
+    // .cooldownTicks(0)
+    .d3Force('center', null)
+    
+    
+
+  // maybe for later
+  //     const Settings = function() {
+  //     this.redDistance = 20;
+  //     this.greenDistance = 20;
+  //   };
+
+  //   const settings = new Settings();
+  //   const gui = new dat.GUI();
+
+  //   const controllerOne = gui.add(settings, 'redDistance', 0, 100);
+  //   const controllerTwo = gui.add(settings, 'greenDistance', 0, 100);
+
+  //   controllerOne.onChange(updateLinkDistance);
+  //   controllerTwo.onChange(updateLinkDistance);
+
+  //   function updateLinkDistance() {
+  //     linkForce.distance(link => link ? settings.redDistance : settings.greenDistance);
+  //     graph.numDimensions(3); // Re-heat simulation
+  //   }
+
+
+
+/*************
+***socketio***
+**************/
+
+
+  var socket = io();
+  socket.emit('test', 'connected')
+  socket.on('tx', async function(txdata){
+    try{
+    console.log(txdata);
+
+    function search(txhash){
+      return new Promise((resolve, reject) => {
+        var such = Graph.graphData().nodes.find(function(element){
+          return element.id==txhash
+        })
+        if(such===undefined){
+          const { nodes, links } = Graph.graphData();
+          const id = nodes.length;
+          Graph.graphData({
+            nodes: [...nodes, { id: txhash }],
+            links: Graph.graphData().links
+          })
+          resolve(true)
+        } else {
+          resolve(true)
+        }
+        reject(err)
+      })
+    }
+    await search(txdata[1])
+    await search(txdata[9])
+    await search(txdata[10])
+    const { nodes, links } = await Graph.graphData();
+    await Graph.graphData({
+      nodes: Graph.graphData().nodes,
+      links: [...links, { source: txdata[1], target: txdata[9] }, { source: txdata[1], target: txdata[10] }]
+    })
+
+    
+  } catch(error){
+    console.log(error)
+  }
+  })
+
+  
+
+  </script>
+  </body>
+</html>
