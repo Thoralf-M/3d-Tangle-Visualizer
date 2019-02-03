@@ -8,4 +8,6 @@ only good for a few transactions, I think the check if the transaction is alread
 
 change to a devnet zmq stream for a nicer tangle
 
+run it with `node index.js` and open `localhost` in your browser
+
 required: nodejs, express, socket.io, zmq, 3d-force-graph
